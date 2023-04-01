@@ -14,7 +14,16 @@ import requests
 import tenacity
 import tiktoken
 
+os.environ["http_proxy"] = "http://127.0.0.1:7890" 
+os.environ["https_proxy"] = "http://127.0.0.1:7890"
+
+
+proxies = {'http': "http://127.0.0.1:7890",
+'https': "http://127.0.0.1:7890"}
+openai.proxy = proxies
+
 from get_paper_from_pdf import Paper
+
 
 PaperParams = namedtuple(
     "PaperParams",

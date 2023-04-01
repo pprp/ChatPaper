@@ -3,3 +3,6 @@ __pycache__/
 /__pycache__
 # Ignore all .pyc files
 *.pyc
+export/*
+pdf_files/*
+apikey.ini
