@@ -29,11 +29,15 @@ class Paper:
 
     def parse_pdf(self):
         self.pdf = fitz.open(self.path)  # pdf文档
+        # process the text
         self.text_list = [page.get_text() for page in self.pdf]
+        # concate the texts
         self.all_text = ' '.join(self.text_list)
-        self.section_page_dict = self._get_all_page_index()  # 段落与页码的对应字典
-        print('section_page_dict', self.section_page_dict)
-        self.section_text_dict = self._get_all_page()  # 段落与内容的对应字典
+        # get the title page dict: section name -> page index
+        self.section_page_dict = self._get_all_page_index() 
+        # get the section text dict: section name -> text
+        self.section_text_dict = self._get_all_page()
+        # update title and paper_info (abstract)
         self.section_text_dict.update({'title': self.title})
         self.section_text_dict.update({'paper_info': self.get_paper_info()})
         self.pdf.close()
@@ -50,9 +54,6 @@ class Paper:
     def get_image_path(self, image_path=''):
         """
         将PDF中的第一张图保存到image.png里面，存到本地目录，返回文件名称，供gitee读取
-        :param filename: 图片所在路径，"C:\\Users\\Administrator\\Desktop\\nwd.pdf"
-        :param image_path: 图片提取后的保存路径
-        :return:
         """
         # open file
         max_size = 0
@@ -133,9 +134,11 @@ class Paper:
 
     def get_title(self):
         doc = self.pdf  # 打开pdf文件
+        import pdb; pdb.set_trace()
         max_font_size = 0  # 初始化最大字体大小为0
         max_string = ''  # 初始化最大字体大小对应的字符串为空
         max_font_sizes = [0]
+
         for page_index, page in enumerate(doc):  # 遍历每一页
             text = page.get_text('dict')  # 获取页面上的文本信息
             blocks = text['blocks']  # 获取文本块列表
@@ -233,12 +236,7 @@ class Paper:
         return section_page_dict
 
     def _get_all_page(self):
-        """
-        获取PDF文件中每个页面的文本信息，并将文本信息按照章节组织成字典返回。
-
-        Returns:
-            section_dict (dict): 每个章节的文本信息字典，key为章节名，value为章节文本。
-        """
+        """ section name -> page index"""
         text = ''
         text_list = []
         section_dict = {}
@@ -277,7 +275,6 @@ class Paper:
                         cur_sec_text += text_list[start_page][start_i:end_i]
                 else:
                     for page_i in range(start_page, end_page):
-                        #                         print("page_i:", page_i)
                         if page_i == start_page:
                             if text_list[start_page].find(sec_name) == -1:
                                 start_i = text_list[start_page].find(
@@ -307,11 +304,11 @@ class Paper:
 
 
 def main():
-    path = r'demo.pdf'
+    path = r'./test/TEST_NAS.pdf'
     paper = Paper(path=path)
     paper.parse_pdf()
     for key, value in paper.section_text_dict.items():
-        print(key, value)
+        print(key)
         print('*' * 40)
 
 

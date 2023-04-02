@@ -266,13 +266,13 @@ class Reader:
                         text=text, summary_prompt_token=summary_prompt_token
                     )
 
-            htmls.append("## Paper:" + str(paper_index + 1))
+            htmls.append("# Paper:" + str(paper_index + 1))
             htmls.append("\n\n\n")
             htmls.append(chat_summary_text)
 
             # 第二步总结方法：
             # TODO，由于有些文章的方法章节名是算法名，所以简单的通过关键词来筛选，很难获取，后面需要用其他的方案去优化。
-            method_key = ""
+            method_key = "Model Details"
             for parse_key in paper.section_text_dict.keys():
                 if "method" in parse_key.lower() or "approach" in parse_key.lower():
                     method_key = parse_key
@@ -284,6 +284,7 @@ class Reader:
                 summary_text = ""
                 summary_text += "<summary>" + chat_summary_text
                 # methods
+                import pdb; pdb.set_trace()
                 method_text += paper.section_text_dict[method_key]
                 text = summary_text + "\n\n<Methods>:\n\n" + method_text
                 chat_method_text = ""
@@ -362,14 +363,11 @@ class Reader:
                 export_path,
                 date_str
                 + "-"
-                + self.validateTitle(paper.title[:80])
+                + self.validateTitle(paper.title[:80].replace(" ", "_"))
                 + "."
                 + self.file_format,
             )
             self.export_to_markdown("\n".join(htmls), file_name=file_name, mode=mode)
-
-            # file_name = os.path.join(export_path, date_str+'-'+self.validateTitle(paper.title)+".md")
-            # self.export_to_markdown("\n".join(htmls), file_name=file_name, mode=mode)
             htmls = []
 
     @tenacity.retry(
