@@ -9,7 +9,7 @@
 💥💥💥The free web version of ChatPaper, which is open to the world and serves thousands of researchers, is officially launched:[https://chatpaper.org/](https://chatpaper.org/) 💥💥💥
 
 
-To keep up with the huge ArXiv papers and AI’s fast progress, we humans need to evolve. We download the latest papers on arxiv based on user keywords, and use ChatGPT3.5 API’s powerful summarization to condense them into a fixed format with minimal text and easy readability. 
+To keep up with the huge ArXiv papers and AI’s fast progress, we humans need to evolve. We download the latest papers on arxiv based on user keywords, and use ChatGPT3.5 API’s powerful summarization to condense them into a fixed format with minimal text and easy readability.
 We provide the most information for everyone to choose which papers to read deeply.
 
 ## TODO list:
@@ -73,14 +73,14 @@ python chat_paper.py --query "chatgpt robot" --filter_keys "chatgpt robot" --max
 
 5. Parameter introduction:
 ```
-[--pdf_path Whether to directly read local pdf documents? If not set, download directly from arxiv with query] 
-[--query The keywords searched on the arxiv website, some abbreviations are demonstrated: all, ti(title), au(author), an example query: all: ChatGPT robot] 
-[--key_word The keywords of your interested field, not very important] 
-[--filter_keys The keywords you need to search in the abstract text, each word must appear to be your target paper] 
-[--max_results The maximum number of articles searched each time, after the above filtering, it is your target number of papers, chat only summarizes filtered papers] 
-[--sort arxiv sorting method, default is relevance, can also be time , arxiv.SortCriterion.LastUpdatedDate or arxiv.SortCriterion.Relevance , don't add quotation marks] 
-[--save_image Whether to save pictures , if you haven't registered gitee's picture bed , default is false ] 
-[--file_format File save format , default is markdown's md format , can also be txt ] 
+[--pdf_path Whether to directly read local pdf documents? If not set, download directly from arxiv with query]
+[--query The keywords searched on the arxiv website, some abbreviations are demonstrated: all, ti(title), au(author), an example query: all: ChatGPT robot]
+[--key_word The keywords of your interested field, not very important]
+[--filter_keys The keywords you need to search in the abstract text, each word must appear to be your target paper]
+[--max_results The maximum number of articles searched each time, after the above filtering, it is your target number of papers, chat only summarizes filtered papers]
+[--sort arxiv sorting method, default is relevance, can also be time , arxiv.SortCriterion.LastUpdatedDate or arxiv.SortCriterion.Relevance , don't add quotation marks]
+[--save_image Whether to save pictures , if you haven't registered gitee's picture bed , default is false ]
+[--file_format File save format , default is markdown's md format , can also be txt ]
 ```
 
 ### 二、Run with Flask web server
@@ -99,9 +99,9 @@ cd ChatPaper
 
 ```
 textCopy code
-pip install virtualenv 
+pip install virtualenv
 # Install the virtual environment tool
-virtualenv venv 
+virtualenv venv
 # Create a new virtual environment named venv
 For Linux/Mac:
 source venv/bin/activate
@@ -148,7 +148,7 @@ After visiting http://127.0.0.1:5000/, you will see the homepage. On the homepag
 
 + If you have any ideas for improving the project, you can take a look at the functions of the "build.sh," "dev.sh," "tagpush.sh" scripts, and the files in the "docker" directory at the root level. We believe they will help you further enhance your ideas on containerization and project encapsulation.
 
-  
+
 
 ## Tips for using the project:
 

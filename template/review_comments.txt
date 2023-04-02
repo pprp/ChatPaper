@@ -5,7 +5,7 @@ The paper proposes a novel Coarse-to-fine Cascaded Evidence-Distillation (CofCED
 
 Paper Strength:
 (1) The paper addresses an important and timely problem of fake news detection and provide insights into the limitations of existing methods.
-(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences. 
+(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences.
 (3) The paper contributes to the research community by presenting two publicly available datasets for explainable fake news detection.
 
 Paper Weakness:
@@ -28,7 +28,7 @@ The paper proposes a novel Coarse-to-fine Cascaded Evidence-Distillation (CofCED
 
 Paper Strength:
 (1) The paper addresses an important and timely problem of fake news detection and provide insights into the limitations of existing methods.
-(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences. 
+(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences.
 (3) The paper contributes to the research community by presenting two publicly available datasets for explainable fake news detection.
 
 Paper Weakness:
@@ -51,7 +51,7 @@ The paper proposes a novel Coarse-to-fine Cascaded Evidence-Distillation (CofCED
 
 Paper Strength:
 (1) The paper addresses an important and timely problem of fake news detection and provide insights into the limitations of existing methods.
-(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences. 
+(2) The proposed CofCED model is innovative and utilizes a hierarchical encoder and cascaded selectors for selecting explainable sentences.
 (3) The paper contributes to the research community by presenting two publicly available datasets for explainable fake news detection.
 
 Paper Weakness:

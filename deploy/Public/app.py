@@ -1,38 +1,36 @@
-import numpy as np
+import base64
+import concurrent.futures
+import datetime
+import io
 import os
 import re
-import datetime
+
 import arxiv
-import openai, tenacity
-import base64, requests
-import argparse
-import configparser
-import fitz, io, os
-from PIL import Image
+import fitz
 import gradio
 import markdown
-import json
+import requests
+import tenacity
 import tiktoken
-import concurrent.futures
 from optimizeOpenAI import chatPaper
-import ipywidgets as widgets
-from IPython.display import display
+from PIL import Image
+
 
 def parse_text(text):
-    lines = text.split("\n")
+    lines = text.split('\n')
     for i, line in enumerate(lines):
-        if "```" in line:
+        if '```' in line:
             items = line.split('`')
             if items[-1]:
                 lines[i] = f'<pre><code class="{items[-1]}">'
             else:
-                lines[i] = f'</code></pre>'
+                lines[i] = '</code></pre>'
         else:
             if i > 0:
-                line = line.replace("<", "&lt;")
-                line = line.replace(">", "&gt;")
-                lines[i] = '<br/>' + line.replace(" ", "&nbsp;")
-    return "".join(lines)
+                line = line.replace('<', '&lt;')
+                line = line.replace('>', '&gt;')
+                lines[i] = '<br/>' + line.replace(' ', '&nbsp;')
+    return ''.join(lines)
 
 
 # def get_response(system, context, myKey, raw = False):
@@ -78,13 +76,12 @@ def valid_apikey(api_keys):
             if result:
                 valid_api_keys.append(result)
     if len(valid_api_keys) > 0:
-        return "有效的api-key一共有{}个，分别是：{}, 现在可以提交你的paper".format(
+        return '有效的api-key一共有{}个，分别是：{}, 现在可以提交你的paper'.format(
             len(valid_api_keys), valid_api_keys)
-    return "无效的api-key"
+    return '无效的api-key'
 
 
 class Paper:
-
     def __init__(self, path, title='', url='', abs='', authers=[], sl=[]):
         # 初始化函数，根据pdf路径初始化Paper对象
         self.url = url  # 文章链接
@@ -102,7 +99,7 @@ class Paper:
             self.title = title
         self.authers = authers
         self.roman_num = [
-            "I", "II", 'III', "IV", "V", "VI", "VII", "VIII", "IIX", "IX", "X"
+            'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IIX', 'IX', 'X'
         ]
         self.digit_num = [str(d + 1) for d in range(10)]
         self.first_image = ''
@@ -112,21 +109,21 @@ class Paper:
         self.text_list = [page.get_text() for page in self.pdf]
         self.all_text = ' '.join(self.text_list)
         self.section_page_dict = self._get_all_page_index()  # 段落与页码的对应字典
-        print("section_page_dict", self.section_page_dict)
+        print('section_page_dict', self.section_page_dict)
         self.section_text_dict = self._get_all_page()  # 段落与内容的对应字典
-        self.section_text_dict.update({"title": self.title})
-        self.section_text_dict.update({"paper_info": self.get_paper_info()})
+        self.section_text_dict.update({'title': self.title})
+        self.section_text_dict.update({'paper_info': self.get_paper_info()})
         self.pdf.close()
 
     def get_paper_info(self):
         first_page_text = self.pdf[self.title_page].get_text()
-        if "Abstract" in self.section_text_dict.keys():
+        if 'Abstract' in self.section_text_dict.keys():
             abstract_text = self.section_text_dict['Abstract']
         else:
             abstract_text = self.abs
         introduction_text = self.section_text_dict['Introduction']
-        first_page_text = first_page_text.replace(abstract_text, "").replace(
-            introduction_text, "")
+        first_page_text = first_page_text.replace(abstract_text, '').replace(
+            introduction_text, '')
         return first_page_text
 
     def get_image_path(self, image_path=''):
@@ -154,9 +151,9 @@ class Paper:
                     # 提取图片信息
                     base_image = my_pdf_file.extract_image(xref_value)
                     # 访问图片
-                    image_bytes = base_image["image"]
+                    image_bytes = base_image['image']
                     # 获取图片扩展名
-                    ext = base_image["ext"]
+                    ext = base_image['ext']
                     # 加载图片
                     image = Image.open(io.BytesIO(image_bytes))
                     image_size = image.size[0] * image.size[1]
@@ -166,9 +163,9 @@ class Paper:
         for image in image_list:
             image_size = image.size[0] * image.size[1]
             if image_size == max_size:
-                image_name = f"image.{ext}"
+                image_name = f'image.{ext}'
                 im_path = os.path.join(image_path, image_name)
-                print("im_path:", im_path)
+                print('im_path:', im_path)
 
                 max_pix = 480
                 origin_min_pix = min(image.size[0], image.size[1])
@@ -181,7 +178,7 @@ class Paper:
                     newsize = (min_pix, max_pix)
                 image = image.resize(newsize)
 
-                image.save(open(im_path, "wb"))
+                image.save(open(im_path, 'wb'))
                 return im_path, ext
         return None, None
 
@@ -204,7 +201,7 @@ class Paper:
                     if 1 < len(point_split_list) < 5 and (
                             point_split_list[0] in self.roman_num
                             or point_split_list[0] in self.digit_num):
-                        print("line:", line)
+                        print('line:', line)
                         chapter_names.append(line)
 
         return chapter_names
@@ -212,42 +209,42 @@ class Paper:
     def get_title(self):
         doc = self.pdf  # 打开pdf文件
         max_font_size = 0  # 初始化最大字体大小为0
-        max_string = ""  # 初始化最大字体大小对应的字符串为空
+        max_string = ''  # 初始化最大字体大小对应的字符串为空
         max_font_sizes = [0]
         for page_index, page in enumerate(doc):  # 遍历每一页
-            text = page.get_text("dict")  # 获取页面上的文本信息
-            blocks = text["blocks"]  # 获取文本块列表
+            text = page.get_text('dict')  # 获取页面上的文本信息
+            blocks = text['blocks']  # 获取文本块列表
             for block in blocks:  # 遍历每个文本块
-                if block["type"] == 0 and len(block['lines']):  # 如果是文字类型
-                    if len(block["lines"][0]["spans"]):
-                        font_size = block["lines"][0]["spans"][0][
-                            "size"]  # 获取第一行第一段文字的字体大小
+                if block['type'] == 0 and len(block['lines']):  # 如果是文字类型
+                    if len(block['lines'][0]['spans']):
+                        font_size = block['lines'][0]['spans'][0][
+                            'size']  # 获取第一行第一段文字的字体大小
                         max_font_sizes.append(font_size)
                         if font_size > max_font_size:  # 如果字体大小大于当前最大值
                             max_font_size = font_size  # 更新最大值
-                            max_string = block["lines"][0]["spans"][0][
-                                "text"]  # 更新最大值对应的字符串
+                            max_string = block['lines'][0]['spans'][0][
+                                'text']  # 更新最大值对应的字符串
         max_font_sizes.sort()
-        print("max_font_sizes", max_font_sizes[-10:])
+        print('max_font_sizes', max_font_sizes[-10:])
         cur_title = ''
         for page_index, page in enumerate(doc):  # 遍历每一页
-            text = page.get_text("dict")  # 获取页面上的文本信息
-            blocks = text["blocks"]  # 获取文本块列表
+            text = page.get_text('dict')  # 获取页面上的文本信息
+            blocks = text['blocks']  # 获取文本块列表
             for block in blocks:  # 遍历每个文本块
-                if block["type"] == 0 and len(block['lines']):  # 如果是文字类型
-                    if len(block["lines"][0]["spans"]):
-                        cur_string = block["lines"][0]["spans"][0][
-                            "text"]  # 更新最大值对应的字符串
-                        font_flags = block["lines"][0]["spans"][0][
-                            "flags"]  # 获取第一行第一段文字的字体特征
-                        font_size = block["lines"][0]["spans"][0][
-                            "size"]  # 获取第一行第一段文字的字体大小
+                if block['type'] == 0 and len(block['lines']):  # 如果是文字类型
+                    if len(block['lines'][0]['spans']):
+                        cur_string = block['lines'][0]['spans'][0][
+                            'text']  # 更新最大值对应的字符串
+                        font_flags = block['lines'][0]['spans'][0][
+                            'flags']  # 获取第一行第一段文字的字体特征
+                        font_size = block['lines'][0]['spans'][0][
+                            'size']  # 获取第一行第一段文字的字体大小
                         # print(font_size)
                         if abs(font_size - max_font_sizes[-1]) < 0.3 or abs(
                                 font_size - max_font_sizes[-2]) < 0.3:
                             # print("The string is bold.", max_string, "font_size:", font_size, "font_flags:", font_flags)
                             if len(cur_string
-                                   ) > 4 and "arXiv" not in cur_string:
+                                   ) > 4 and 'arXiv' not in cur_string:
                                 # print("The string is bold.", max_string, "font_size:", font_size, "font_flags:", font_flags)
                                 if cur_title == '':
                                     cur_title += cur_string
@@ -272,7 +269,7 @@ class Paper:
                 # 将章节名称转换成大写形式
                 section_name_upper = section_name.upper()
                 # 如果当前页面包含"Abstract"这个关键词
-                if "Abstract" == section_name and section_name in cur_text:
+                if 'Abstract' == section_name and section_name in cur_text:
                     # 将"Abstract"和它所在的页码加入字典中
                     section_page_dict[section_name] = page_index
                 # 如果当前页面包含章节名称，则将章节名称和它所在的页码加入字典中
@@ -308,7 +305,7 @@ class Paper:
                         self.section_page_dict.keys())[sec_index + 1]]
                 else:
                     end_page = len(text_list)
-                print("start_page, end_page:", start_page, end_page)
+                print('start_page, end_page:', start_page, end_page)
                 cur_sec_text = ''
                 if end_page - start_page == 0:
                     if sec_index < len(list(
@@ -370,7 +367,7 @@ class Reader:
                  user_name='defualt',
                  language='cn',
                  api_keys: list = [],
-                 model_name="gpt-3.5-turbo",
+                 model_name='gpt-3.5-turbo',
                  p=1.0,
                  temperature=1.0):
         self.api_keys = api_keys
@@ -393,7 +390,7 @@ class Reader:
         else:
             self.gitee_key = ''
         self.max_token_num = 4096
-        self.encoding = tiktoken.get_encoding("gpt2")
+        self.encoding = tiktoken.get_encoding('gpt2')
 
     def get_arxiv(self, max_results=30):
         search = arxiv.Search(
@@ -406,26 +403,26 @@ class Reader:
 
     def filter_arxiv(self, max_results=30):
         search = self.get_arxiv(max_results=max_results)
-        print("all search:")
+        print('all search:')
         for index, result in enumerate(search.results()):
             print(index, result.title, result.updated)
 
         filter_results = []
         filter_keys = self.filter_keys
 
-        print("filter_keys:", self.filter_keys)
+        print('filter_keys:', self.filter_keys)
         # 确保每个关键词都能在摘要中找到，才算是目标论文
         for index, result in enumerate(search.results()):
             abs_text = result.summary.replace('-\n', '-').replace('\n', ' ')
             meet_num = 0
-            for f_key in filter_keys.split(" "):
+            for f_key in filter_keys.split(' '):
                 if f_key.lower() in abs_text.lower():
                     meet_num += 1
-            if meet_num == len(filter_keys.split(" ")):
+            if meet_num == len(filter_keys.split(' ')):
                 filter_results.append(result)
                 # break
-        print("filter_results:", len(filter_results))
-        print("filter_papers:")
+        print('filter_results:', len(filter_results))
+        print('filter_papers:')
         for index, result in enumerate(filter_results):
             print(index, result.title, result.updated)
         return filter_results
@@ -433,7 +430,7 @@ class Reader:
     def validateTitle(self, title):
         # 将论文的乱七八糟的路径格式修正
         rstr = r"[\/\\\:\*\?\"\<\>\|]"  # '/ \ : * ? " < > |'
-        new_title = re.sub(rstr, "_", title)  # 替换为下划线
+        new_title = re.sub(rstr, '_', title)  # 替换为下划线
         return new_title
 
     def download_pdf(self, filter_results):
@@ -447,7 +444,7 @@ class Reader:
             os.makedirs(path)
         except:
             pass
-        print("All_paper:", len(filter_results))
+        print('All_paper:', len(filter_results))
         # 开始下载：
         paper_list = []
         for r_index, result in enumerate(filter_results):
@@ -457,7 +454,7 @@ class Reader:
                 # result.download_pdf(path, filename=pdf_name)
                 self.try_download_pdf(result, path, pdf_name)
                 paper_path = os.path.join(path, pdf_name)
-                print("paper_path:", paper_path)
+                print('paper_path:', paper_path)
                 paper = Paper(
                     path=paper_path,
                     url=result.entry_id,
@@ -469,7 +466,7 @@ class Reader:
                 paper.parse_pdf()
                 paper_list.append(paper)
             except Exception as e:
-                print("download_error:", e)
+                print('download_error:', e)
                 pass
         return paper_list
 
@@ -498,30 +495,29 @@ class Reader:
         path = image_name + '-' + date_str
 
         payload = {
-            "access_token": self.gitee_key,
-            "owner": self.config.get('Gitee', 'owner'),
-            "repo": self.config.get('Gitee', 'repo'),
-            "path": self.config.get('Gitee', 'path'),
-            "content": base64_content,
-            "message": "upload image"
+            'access_token': self.gitee_key,
+            'owner': self.config.get('Gitee', 'owner'),
+            'repo': self.config.get('Gitee', 'repo'),
+            'path': self.config.get('Gitee', 'path'),
+            'content': base64_content,
+            'message': 'upload image'
         }
         # 这里需要修改成你的gitee的账户和仓库名，以及文件夹的名字：
-        url = f'https://gitee.com/api/v5/repos/' + self.config.get(
+        url = 'https://gitee.com/api/v5/repos/' + self.config.get(
             'Gitee', 'owner') + '/' + self.config.get(
                 'Gitee', 'repo') + '/contents/' + self.config.get(
                     'Gitee', 'path') + '/' + path
         rep = requests.post(url, json=payload).json()
-        print("rep:", rep)
+        print('rep:', rep)
         if 'content' in rep.keys():
             image_url = rep['content']['download_url']
         else:
-            image_url = r"https://gitee.com/api/v5/repos/" + self.config.get(
+            image_url = r'https://gitee.com/api/v5/repos/' + self.config.get(
                 'Gitee', 'owner') + '/' + self.config.get(
                     'Gitee', 'repo') + '/contents/' + self.config.get(
                         'Gitee', 'path') + '/' + path
 
         return image_url
-
 
     def summary_with_chat(self, paper_list):
         htmls = []
@@ -537,8 +533,8 @@ class Reader:
             text += 'Paper_info:' + paper.section_text_dict['paper_info']
             # intro
             text += list(paper.section_text_dict.values())[0]
-            #max_token = 2500 * 4
-            #text = text[:max_token]
+            # max_token = 2500 * 4
+            # text = text[:max_token]
             chat_summary_text, utoken1, ctoken1, ttoken1 = self.chat_summary(
                 text=text)
             htmls.append(chat_summary_text)
@@ -555,16 +551,16 @@ class Reader:
                 text = ''
                 method_text = ''
                 summary_text = ''
-                summary_text += "<summary>" + chat_summary_text
+                summary_text += '<summary>' + chat_summary_text
                 # methods
                 method_text += paper.section_text_dict[method_key]
-                text = summary_text + "\n<Methods>:\n" + method_text
+                text = summary_text + '\n<Methods>:\n' + method_text
                 chat_method_text, utoken2, ctoken2, ttoken2 = self.chat_method(
                     text=text)
             else:
                 chat_method_text = ''
             htmls.append(chat_method_text)
-            htmls.append("\n")
+            htmls.append('\n')
 
             # 第三步总结全文，并打分：
             conclusion_key = ''
@@ -576,29 +572,29 @@ class Reader:
             text = ''
             conclusion_text = ''
             summary_text = ''
-            summary_text += "<summary>" + chat_summary_text + "\n <Method summary>:\n" + chat_method_text
+            summary_text += '<summary>' + chat_summary_text + '\n <Method summary>:\n' + chat_method_text
             if conclusion_key != '':
                 # conclusion
                 conclusion_text += paper.section_text_dict[conclusion_key]
-                text = summary_text + "\n <Conclusion>:\n" + conclusion_text
+                text = summary_text + '\n <Conclusion>:\n' + conclusion_text
             else:
                 text = summary_text
             chat_conclusion_text, utoken3, ctoken3, ttoken3 = self.chat_conclusion(
                 text=text)
             htmls.append(chat_conclusion_text)
-            htmls.append("\n")
+            htmls.append('\n')
             # token统计
             utoken = utoken + utoken1 + utoken2 + utoken3
             ctoken = ctoken + ctoken1 + ctoken2 + ctoken3
             ttoken = ttoken + ttoken1 + ttoken2 + ttoken3
             cost = (ttoken / 1000) * 0.002
             pos_count = {
-                "usage_token_used": str(utoken),
-                "completion_token_used": str(ctoken),
-                "total_token_used": str(ttoken),
-                "cost": str(cost),
+                'usage_token_used': str(utoken),
+                'completion_token_used': str(ctoken),
+                'total_token_used': str(ttoken),
+                'cost': str(cost),
             }
-            md_text = "\n".join(htmls)
+            md_text = '\n'.join(htmls)
             return markdown.markdown(md_text), pos_count
 
     @tenacity.retry(wait=tenacity.wait_exponential(multiplier=1, min=4,
@@ -613,31 +609,31 @@ class Reader:
             text_token)
         clip_text = text[:clip_text_index]
         self.chatPaper.reset(
-            convo_id="chatConclusion",
-            system_prompt="You are a reviewer in the field of [" +
-            self.key_word + "] and you need to critically review this article")
+            convo_id='chatConclusion',
+            system_prompt='You are a reviewer in the field of [' +
+            self.key_word + '] and you need to critically review this article')
         self.chatPaper.add_to_conversation(
-            convo_id="chatConclusion",
-            role="assistant",
+            convo_id='chatConclusion',
+            role='assistant',
             message=
-            "This is the <summary> and <conclusion> part of an English literature, where <summary> you have already summarized, but <conclusion> part, I need your help to summarize the following questions:"
+            'This is the <summary> and <conclusion> part of an English literature, where <summary> you have already summarized, but <conclusion> part, I need your help to summarize the following questions:'
             + clip_text)  # 背景知识，可以参考OpenReview的审稿流程
-        content = """                 
+        content = """
                  8. Make the following summary.Be sure to use Chinese answers (proper nouns need to be marked in English).
                     - (1):What is the significance of this piece of work?
-                    - (2):Summarize the strengths and weaknesses of this article in three dimensions: innovation point, performance, and workload.                   
+                    - (2):Summarize the strengths and weaknesses of this article in three dimensions: innovation point, performance, and workload.
                     .......
-                 Follow the format of the output later: 
+                 Follow the format of the output later:
                  8. Conclusion: \n\n
-                    - (1):xxx;\n                     
-                    - (2):Innovation point: xxx; Performance: xxx; Workload: xxx;\n                      
-                 
-                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.                 
+                    - (1):xxx;\n
+                    - (2):Innovation point: xxx; Performance: xxx; Workload: xxx;\n
+
+                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.
                  """
         result = self.chatPaper.ask(
             prompt=content,
-            role="user",
-            convo_id="chatConclusion",
+            role='user',
+            convo_id='chatConclusion',
         )
         print(result)
         return result[0], result[1], result[2], result[3]
@@ -654,36 +650,36 @@ class Reader:
             text_token)
         clip_text = text[:clip_text_index]
         self.chatPaper.reset(
-            convo_id="chatMethod",
-            system_prompt="You are a researcher in the field of [" +
+            convo_id='chatMethod',
+            system_prompt='You are a researcher in the field of [' +
             self.key_word +
-            "] who is good at summarizing papers using concise statements"
+            '] who is good at summarizing papers using concise statements'
         )  # chatgpt 角色
         self.chatPaper.add_to_conversation(
-            convo_id="chatMethod",
-            role="assistant",
+            convo_id='chatMethod',
+            role='assistant',
             message=str(
-                "This is the <summary> and <Method> part of an English document, where <summary> you have summarized, but the <Methods> part, I need your help to read and summarize the following questions."
+                'This is the <summary> and <Method> part of an English document, where <summary> you have summarized, but the <Methods> part, I need your help to read and summarize the following questions.'
                 + clip_text))
-        content = """                 
+        content = """
                  7. Describe in detail the methodological idea of this article. Be sure to use Chinese answers (proper nouns need to be marked in English). For example, its steps are.
                     - (1):...
                     - (2):...
                     - (3):...
                     - .......
-                 Follow the format of the output that follows: 
+                 Follow the format of the output that follows:
                  7. Methods: \n\n
-                    - (1):xxx;\n 
-                    - (2):xxx;\n 
-                    - (3):xxx;\n  
-                    ....... \n\n     
-                 
-                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.                 
+                    - (1):xxx;\n
+                    - (2):xxx;\n
+                    - (3):xxx;\n
+                    ....... \n\n
+
+                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not repeat the content of the previous <summary>, the value of the use of the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed, ....... means fill in according to the actual requirements, if not, you can not write.
                  """
         result = self.chatPaper.ask(
             prompt=content,
-            role="user",
-            convo_id="chatMethod",
+            role='user',
+            convo_id='chatMethod',
         )
         print(result)
         return result[0], result[1], result[2], result[3]
@@ -700,20 +696,20 @@ class Reader:
             text_token)
         clip_text = text[:clip_text_index]
         self.chatPaper.reset(
-            convo_id="chatSummary",
-            system_prompt="You are a researcher in the field of [" +
+            convo_id='chatSummary',
+            system_prompt='You are a researcher in the field of [' +
             self.key_word +
-            "] who is good at summarizing papers using concise statements")
+            '] who is good at summarizing papers using concise statements')
         self.chatPaper.add_to_conversation(
-            convo_id="chatSummary",
-            role="assistant",
+            convo_id='chatSummary',
+            role='assistant',
             message=str(
-                "This is the title, author, link, abstract and introduction of an English document. I need your help to read and summarize the following questions: "
+                'This is the title, author, link, abstract and introduction of an English document. I need your help to read and summarize the following questions: '
                 + clip_text))
-        content = """                 
+        content = """
                  1. Mark the title of the paper (with Chinese translation)
                  2. list all the authors' names (use English)
-                 3. mark the first author's affiliation (output Chinese translation only)                 
+                 3. mark the first author's affiliation (output Chinese translation only)
                  4. mark the keywords of this article (use English)
                  5. link to the paper, Github code link (if available, fill in Github:None if not)
                  6. summarize according to the following four points.Be sure to use Chinese answers (proper nouns need to be marked in English)
@@ -721,24 +717,24 @@ class Reader:
                     - (2):What are the past methods? What are the problems with them? Is the approach well motivated?
                     - (3):What is the research methodology proposed in this paper?
                     - (4):On what task and what performance is achieved by the methods in this paper? Can the performance support their goals?
-                 Follow the format of the output that follows:                  
+                 Follow the format of the output that follows:
                  1. Title: xxx\n\n
                  2. Authors: xxx\n\n
-                 3. Affiliation: xxx\n\n                 
-                 4. Keywords: xxx\n\n   
-                 5. Urls: xxx or xxx , xxx \n\n      
+                 3. Affiliation: xxx\n\n
+                 4. Keywords: xxx\n\n
+                 5. Urls: xxx or xxx , xxx \n\n
                  6. Summary: \n\n
-                    - (1):xxx;\n 
-                    - (2):xxx;\n 
-                    - (3):xxx;\n  
-                    - (4):xxx.\n\n     
-                 
-                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.                 
+                    - (1):xxx;\n
+                    - (2):xxx;\n
+                    - (3):xxx;\n
+                    - (4):xxx.\n\n
+
+                 Be sure to use Chinese answers (proper nouns need to be marked in English), statements as concise and academic as possible, do not have too much repetitive information, numerical values using the original numbers, be sure to strictly follow the format, the corresponding content output to xxx, in accordance with \n line feed.
                  """
         result = self.chatPaper.ask(
             prompt=content,
-            role="user",
-            convo_id="chatSummary",
+            role='user',
+            convo_id='chatSummary',
         )
         print(result)
         return result[0], result[1], result[2], result[3]
@@ -747,15 +743,15 @@ class Reader:
         # 使用markdown模块的convert方法，将文本转换为html格式
         # html = markdown.markdown(text)
         # 打开一个文件，以写入模式
-        with open(file_name, mode, encoding="utf-8") as f:
+        with open(file_name, mode, encoding='utf-8') as f:
             # 将html格式的内容写入文件
             f.write(text)
 
     # 定义一个方法，打印出读者信息
     def show_info(self):
-        print(f"Key word: {self.key_word}")
-        print(f"Query: {self.query}")
-        print(f"Sort: {self.sort}")
+        print(f'Key word: {self.key_word}')
+        print(f'Query: {self.query}')
+        print(f'Sort: {self.sort}')
 
 
 def upload_pdf(api_keys, text, model_name, p, temperature, file):
@@ -766,10 +762,10 @@ def upload_pdf(api_keys, text, model_name, p, temperature, file):
     elif not api_keys and valid_api_keys != []:
         api_key_list = valid_api_keys
     if not text or not file or not api_key_list:
-        return "两个输入都不能为空，请输入字符并上传 PDF 文件！"
+        return '两个输入都不能为空，请输入字符并上传 PDF 文件！'
 
     # 判断PDF文件
-    #if file and file.name.split(".")[-1].lower() != "pdf":
+    # if file and file.name.split(".")[-1].lower() != "pdf":
     #    return '请勿上传非 PDF 文件！'
     else:
         section_list = text.split(',')
@@ -785,7 +781,7 @@ def upload_pdf(api_keys, text, model_name, p, temperature, file):
         return cost, sum_info
 
 
-api_title = "api-key可用验证"
+api_title = 'api-key可用验证'
 api_description = '''<div align='left'>
 <img src='https://visitor-badge.laobi.icu/badge?page_id=https://huggingface.co/spaces/wangrongsheng/ChatPaper'>
 <img align='right' src='https://i.328888.xyz/2023/03/12/vH9dU.png' width="150">
@@ -796,18 +792,18 @@ Use ChatGPT to summary the papers.Star our Github [🌟ChatPaper](https://github
 '''
 
 api_input = [
-    gradio.inputs.Textbox(label="请输入你的API-key(必填, 多个API-key请用英文逗号隔开)",
-                          default="",
+    gradio.inputs.Textbox(label='请输入你的API-key(必填, 多个API-key请用英文逗号隔开)',
+                          default='',
                           type='password')
 ]
 api_gui = gradio.Interface(fn=valid_apikey,
                            inputs=api_input,
-                           outputs="text",
+                           outputs='text',
                            title=api_title,
                            description=api_description)
 
 # 标题
-title = "ChatPaper"
+title = 'ChatPaper'
 # 描述
 description = '''<div align='left'>
 <img src='https://visitor-badge.laobi.icu/badge?page_id=https://huggingface.co/spaces/wangrongsheng/ChatPaper'>
@@ -819,38 +815,37 @@ Use ChatGPT to summary the papers.Star our Github [🌟ChatPaper](https://github
 '''
 # 创建Gradio界面
 ip = [
-    gradio.inputs.Textbox(label="请输入你的API-key(必填, 多个API-key请用英文逗号隔开),不需要空格",
-                          default="",
+    gradio.inputs.Textbox(label='请输入你的API-key(必填, 多个API-key请用英文逗号隔开),不需要空格',
+                          default='',
                           type='password'),
     gradio.inputs.Textbox(
-        label="请输入论文大标题索引(用英文逗号隔开,必填)",
+        label='请输入论文大标题索引(用英文逗号隔开,必填)',
         default=
         "'Abstract,Introduction,Related Work,Background,Preliminary,Problem Formulation,Methods,Methodology,Method,Approach,Approaches,Materials and Methods,Experiment Settings,Experiment,Experimental Results,Evaluation,Experiments,Results,Findings,Data Analysis,Discussion,Results and Discussion,Conclusion,References'"
     ),
-    gradio.inputs.Radio(choices=["gpt-3.5-turbo", "gpt-3.5-turbo-0301"],
-                        default="gpt-3.5-turbo",
-                        label="Select model"),
+    gradio.inputs.Radio(choices=['gpt-3.5-turbo', 'gpt-3.5-turbo-0301'],
+                        default='gpt-3.5-turbo',
+                        label='Select model'),
     gradio.inputs.Slider(minimum=-0,
                          maximum=1.0,
                          default=1.0,
                          step=0.05,
-                         label="Top-p (nucleus sampling)"),
+                         label='Top-p (nucleus sampling)'),
     gradio.inputs.Slider(minimum=-0,
                          maximum=5.0,
                          default=0.5,
                          step=0.5,
-                         label="Temperature"),
-    gradio.inputs.File(label="请上传论文PDF(必填)")
+                         label='Temperature'),
+    gradio.inputs.File(label='请上传论文PDF(必填)')
 ]
-
 
 chatpaper_gui = gradio.Interface(fn=upload_pdf,
                                  inputs=ip,
-                                 outputs=["json", "html"],
+                                 outputs=['json', 'html'],
                                  title=title,
                                  description=description)
 
 # Start server
 gui = gradio.TabbedInterface(interface_list=[api_gui, chatpaper_gui],
-                             tab_names=["API-key", "ChatPaper"])
+                             tab_names=['API-key', 'ChatPaper'])
 gui.launch(quiet=True, show_api=False)
