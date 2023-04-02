@@ -6,3 +6,4 @@ __pycache__/
 export/*
 pdf_files/*
 apikey.ini
+test/*

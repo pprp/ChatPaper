@@ -184,9 +184,7 @@ def main():
     path = r'demo.pdf'
     paper = Paper(path=path)
     paper.parse_pdf()
-    # for key, value in paper.section_text_dict.items():
-    # print(key, value)
-    # print("*"*40)
+    import pdb; pdb.set_trace()  
 
 
 if __name__ == '__main__':

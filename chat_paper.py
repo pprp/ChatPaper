@@ -212,6 +212,7 @@ class Reader:
             # intro
             text += list(paper.section_text_dict.values())[0]
             chat_summary_text = ""
+
             try:
                 chat_summary_text = self.chat_summary(text=text)
             except Exception as e:
@@ -412,25 +413,31 @@ class Reader:
             {"role": "system",
              "content": "You are a researcher in the field of [" + self.key_word + "] who is good at summarizing papers using concise statements"},
             {"role": "assistant",
-             "content": "This is the title, author, link, abstract and introduction of an English document. I need your help to read and summarize the following questions: " + clip_text},
+             "content": f"This is the title, author, link, abstract and introduction of an English document. Read and summarize the following questions: {clip_text} in the format of markdown."},
             {"role": "user", "content": """                 
-                 1. Mark the title of the paper (with Chinese translation)
-                 2. list all the authors' names (use English)
-                 3. mark the first author's affiliation (output {} translation only)                 
-                 4. mark the keywords of this article (use English)
-                 5. link to the paper, Github code link (if available, fill in Github:None if not)
-                 6. summarize according to the following four points.Be sure to use {} answers (proper nouns need to be marked in English)
+                 1. Mark the Chinese title (with English as subtitle).
+                 2. Generate table of contents (use Chinese (most) or English).
+                 3. Generate the Abstract (use Chinese).
+                 4. Generate the introduction (use Chinese) and the background knowledges.
+                 5. summarize according to the following four points. Be sure to use {} answers (proper nouns need to be marked in English)
                     - (1):What is the research background of this article?
                     - (2):What are the past methods? What are the problems with them? Is the approach well motivated?
                     - (3):What is the research methodology proposed in this paper?
                     - (4):On what task and what performance is achieved by the methods in this paper? Can the performance support their goals?
-                 Follow the format of the output that follows:                  
-                 1. Title: xxx\n\n
-                 2. Authors: xxx\n\n
-                 3. Affiliation: xxx\n\n                 
-                 4. Keywords: xxx\n\n   
-                 5. Urls: xxx or xxx , xxx \n\n      
-                 6. Summary: \n\n
+                 Follow the format of the output that follows:  
+                 ## (title in chinese)\n
+                    (subtitle in english)\n
+                 ## Table of Contents(Chinese): \n\n
+                    - (1):xxx;\n
+                    - (2):xxx;\n
+                    - (3):xxx;\n
+                 ## 摘要: \n\n
+                    xxxx;\n
+                 ## 简介: \n\n
+                    xxxx;\n
+                 ## 方法: \n\n
+                    xxxx;\n
+                 ## 总结：\n\n
                     - (1):xxx;\n 
                     - (2):xxx;\n 
                     - (3):xxx;\n  
@@ -461,7 +468,6 @@ class Reader:
         with open(file_name, mode, encoding="utf-8") as f:
             # 将html格式的内容写入文件
             f.write(text)
-
             # 定义一个方法，打印出读者信息
 
     def show_info(self):
