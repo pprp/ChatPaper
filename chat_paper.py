@@ -63,7 +63,7 @@ class Reader:
         # 创建一个ConfigParser对象
         self.config = configparser.ConfigParser()
         # 读取配置文件
-        self.config.read('apikey.ini')
+        self.config.read('./test/apikey.ini')
         OPENAI_KEY = os.environ.get('OPENAI_KEY', '')
         # 获取某个键对应的值
         self.chat_api_list = self.config.get('OpenAI',
