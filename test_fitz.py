@@ -206,7 +206,7 @@ def test_get_conclusion():
 
 
 if __name__ == "__main__":
-    test_get_abstract()
+    # test_get_abstract()
     test_get_introduction()
     # test_get_title()
     # test_get_conclusion()
