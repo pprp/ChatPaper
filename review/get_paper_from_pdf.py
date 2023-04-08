@@ -134,7 +134,6 @@ class Paper:
 
     def get_title(self):
         doc = self.pdf  # 打开pdf文件
-        import pdb; pdb.set_trace()
         max_font_size = 0  # 初始化最大字体大小为0
         max_string = ''  # 初始化最大字体大小对应的字符串为空
         max_font_sizes = [0]

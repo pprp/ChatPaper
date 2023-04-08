@@ -1,5 +1,6 @@
-import fitz
 import pdb
+
+import fitz
 
 cand_list = [
     "./tests/TEST_NAS1.pdf",
